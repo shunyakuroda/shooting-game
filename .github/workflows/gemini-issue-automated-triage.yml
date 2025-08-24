@@ -31,7 +31,7 @@ permissions:
 
 jobs:
   triage-issue:
-    if: |-
+    if: |- 
       github.event_name == 'issues' ||
       github.event_name == 'workflow_dispatch' ||
       (
@@ -47,7 +47,7 @@ jobs:
 
       - name: 'Generate GitHub App Token'
         id: 'generate_token'
-        if: |-
+        if: |- 
           ${{ vars.APP_ID }}
         uses: 'actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e' # ratchet:actions/create-github-app-token@v2
         with:
@@ -59,7 +59,7 @@ jobs:
         uses: 'actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea'
         with:
           github-token: '${{ steps.generate_token.outputs.token || secrets.GITHUB_TOKEN }}'
-          script: |-
+          script: |- 
             const { data: labels } = await github.rest.issues.listLabelsForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -98,36 +98,18 @@ jobs:
               }
             }
           prompt: |-
-            ## Role
-
-            You are an issue triage assistant. Analyze the current GitHub issue
-            and identify the most appropriate existing labels.
-
-            ## Steps
-
-            1. Review the available labels in the environment variable: "${AVAILABLE_LABELS}".
-            2. Review the issue title and body provided in the environment
-               variables: "${ISSUE_TITLE}" and "${ISSUE_BODY}".
-            3. Classify the issue by the appropriate labels from the available labels.
-            4. Output the appropriate labels for this issue in JSON format with explanation, for example:
-               ```
-               {"labels_to_set": ["kind/bug", "priority/p0"], "explanation": "This is a critical bug report affecting main functionality"}
-               ```
-            5. If the issue cannot be classified using the available labels, output:
-               ```
-               {"labels_to_set": [], "explanation": "Unable to classify this issue with available labels"}
-               ```
-
-            ## Guidelines
-
-            - Only use labels that already exist in the repository
-            - Assign all applicable labels based on the issue content
-            - Reference all shell variables as "${VAR}" (with quotes and braces)
-            - Output only valid JSON format
-            - Do not include any explanation or additional text, just the JSON
+            You are an issue triage assistant.
+            Your task is to add labels to a GitHub issue.
+            The available labels are in the AVAILABLE_LABELS environment variable.
+            The issue title is in the ISSUE_TITLE environment variable.
+            The issue body is in the ISSUE_BODY environment variable.
+            Your output must be a JSON object with two keys: "labels_to_set" and "explanation".
+            "labels_to_set" is a list of strings, where each string is a label to be added to the issue.
+            "explanation" is a string that explains why you chose those labels.
+            Do not use any tools.
 
       - name: 'Apply Labels to Issue'
-        if: |-
+        if: |- 
           ${{ steps.gemini_issue_analysis.outputs.summary != '' }}
         env:
           REPOSITORY: '${{ github.repository }}'
@@ -136,7 +118,7 @@ jobs:
         uses: 'actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea'
         with:
           github-token: '${{ steps.generate_token.outputs.token || secrets.GITHUB_TOKEN }}'
-          script: |-
+          script: |- 
             // Strip code block markers if present
             const rawLabels = process.env.LABELS_OUTPUT;
             core.info(`Raw labels JSON: ${rawLabels}`);
@@ -171,7 +153,7 @@ jobs:
             }
 
       - name: 'Post Issue Analysis Failure Comment'
-        if: |-
+        if: |- 
           ${{ failure() && steps.gemini_issue_analysis.outcome == 'failure' }}
         env:
           ISSUE_NUMBER: '${{ github.event.issue.number }}'
@@ -179,7 +161,7 @@ jobs:
         uses: 'actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea'
         with:
           github-token: '${{ steps.generate_token.outputs.token || secrets.GITHUB_TOKEN }}'
-          script: |-
+          script: |- 
             github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
