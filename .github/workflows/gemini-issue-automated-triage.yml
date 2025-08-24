@@ -31,7 +31,7 @@ permissions:
 
 jobs:
   triage-issue:
-    if: |- 
+    if: |-
       github.event_name == 'issues' ||
       github.event_name == 'workflow_dispatch' ||
       (
@@ -39,17 +39,17 @@ jobs:
         contains(github.event.comment.body, '@gemini-cli /triage') &&
         contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association)
       )
-    timeout-minutes: 10
+    timeout-minutes: 5
     runs-on: 'ubuntu-latest'
     steps:
       - name: 'Checkout repository'
-        uses: 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' # ratchet:actions/checkout@v4
+        uses: 'actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8' # ratchet:actions/checkout@v5
 
       - name: 'Generate GitHub App Token'
         id: 'generate_token'
         if: |-
           ${{ vars.APP_ID }}
-        uses: 'actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e' # ratchet:actions/create-github-app-token@v2
+        uses: 'actions/create-github-app-token@a8d616148505b5069dccd32f177bb87d7f39123b' # ratchet:actions/create-github-app-token@v2
         with:
           app-id: '${{ vars.APP_ID }}'
           private-key: '${{ secrets.APP_PRIVATE_KEY }}'
@@ -88,28 +88,52 @@ jobs:
           gemini_api_key: '${{ secrets.GEMINI_API_KEY }}'
           use_vertex_ai: '${{ vars.GOOGLE_GENAI_USE_VERTEXAI }}'
           use_gemini_code_assist: '${{ vars.GOOGLE_GENAI_USE_GCA }}'
+          gemini_debug: '${{ fromJSON(vars.DEBUG || vars.ACTIONS_STEP_DEBUG || false) }}'
+          gemini_model: '${{ vars.GEMINI_MODEL }}'
           settings: |-
             {
-              "debug": ${{ fromJSON(env.DEBUG || env.ACTIONS_STEP_DEBUG || false) }},
               "maxSessionTurns": 25,
+              "coreTools": [
+                "run_shell_command(echo)"
+              ],
               "telemetry": {
                 "enabled": false,
                 "target": "gcp"
               }
             }
           prompt: |-
-            You are an issue triage assistant.
-            Your task is to add labels to a GitHub issue.
-            The available labels are in the AVAILABLE_LABELS environment variable.
-            The issue title is in the ISSUE_TITLE environment variable.
-            The issue body is in the ISSUE_BODY environment variable.
-            Your output must be a JSON object with two keys: "labels_to_set" and "explanation".
-            "labels_to_set" is a list of strings, where each string is a label to be added to the issue.
-            "explanation" is a string that explains why you chose those labels.
-            You must not use any tools. Do not call any functions or tools, including run_shell_command.
+            ## Role
+
+            You are an issue triage assistant. Analyze the current GitHub issue
+            and identify the most appropriate existing labels. Use the available
+            tools to gather information; do not ask for information to be
+            provided.
+
+            ## Steps
+
+            1. Review the available labels in the environment variable: "${AVAILABLE_LABELS}".
+            2. Review the issue title and body provided in the environment
+               variables: "${ISSUE_TITLE}" and "${ISSUE_BODY}".
+            3. Classify the issue by the appropriate labels from the available labels.
+            4. Output the appropriate labels for this issue in JSON format with explanation, for example:
+               ```
+               {"labels_to_set": ["kind/bug", "priority/p0"], "explanation": "This is a critical bug report affecting main functionality"}
+               ```
+            5. If the issue cannot be classified using the available labels, output:
+               ```
+               {"labels_to_set": [], "explanation": "Unable to classify this issue with available labels"}
+               ```
+
+            ## Guidelines
+
+            - Only use labels that already exist in the repository
+            - Assign all applicable labels based on the issue content
+            - Reference all shell variables as "${VAR}" (with quotes and braces)
+            - Output only valid JSON format
+            - Do not include any explanation or additional text, just the JSON
 
       - name: 'Apply Labels to Issue'
-        if: |- 
+        if: |-
           ${{ steps.gemini_issue_analysis.outputs.summary != '' }}
         env:
           REPOSITORY: '${{ github.repository }}'
@@ -124,9 +148,7 @@ jobs:
             core.info(`Raw labels JSON: ${rawLabels}`);
             let parsedLabels;
             try {
-              const jsonStart = rawLabels.indexOf('{');
-              const jsonString = rawLabels.substring(jsonStart);
-              const trimmedLabels = jsonString.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '').trim();
+              const trimmedLabels = rawLabels.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '').trim();
               parsedLabels = JSON.parse(trimmedLabels);
               core.info(`Parsed labels JSON: ${JSON.stringify(parsedLabels)}`);
             } catch (err) {
@@ -153,7 +175,7 @@ jobs:
             }
 
       - name: 'Post Issue Analysis Failure Comment'
-        if: |- 
+        if: |-
           ${{ failure() && steps.gemini_issue_analysis.outcome == 'failure' }}
         env:
           ISSUE_NUMBER: '${{ github.event.issue.number }}'
