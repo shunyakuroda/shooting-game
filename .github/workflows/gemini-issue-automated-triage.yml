@@ -147,7 +147,9 @@ jobs:
             core.info(`Raw labels JSON: ${rawLabels}`);
             let parsedLabels;
             try {
-              const trimmedLabels = rawLabels.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '').trim();
+              const jsonStart = rawLabels.indexOf('{');
+              const jsonString = rawLabels.substring(jsonStart);
+              const trimmedLabels = jsonString.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '').trim();
               parsedLabels = JSON.parse(trimmedLabels);
               core.info(`Parsed labels JSON: ${JSON.stringify(parsedLabels)}`);
             } catch (err) {
