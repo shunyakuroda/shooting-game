@@ -1,5 +1,6 @@
 const gameContainer = document.getElementById('game-container');
 const player = document.getElementById('player');
+player.innerHTML = '✈️';
 const scoreDisplay = document.getElementById('score');
 
 let playerScore = 0;
@@ -41,13 +42,14 @@ function fireBullet() {
 function createEnemy() {
     const enemy = document.createElement('div');
     enemy.classList.add('enemy');
+    enemy.innerHTML = '✈️';
     enemy.style.left = Math.floor(Math.random() * 360) + 'px';
     enemy.style.top = '0px';
     gameContainer.appendChild(enemy);
 
     let enemyInterval = setInterval(() => {
         let enemyPosition = parseInt(enemy.style.top);
-        if (enemyPosition > 460) {
+        if (enemyPosition > 450) {
             if (checkPlayerCollision(enemy)) {
                 alert('Game Over! Your score: ' + playerScore);
                 clearInterval(enemyInterval);
