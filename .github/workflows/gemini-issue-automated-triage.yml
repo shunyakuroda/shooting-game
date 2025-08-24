@@ -47,7 +47,7 @@ jobs:
 
       - name: 'Generate GitHub App Token'
         id: 'generate_token'
-        if: |- 
+        if: |-
           ${{ vars.APP_ID }}
         uses: 'actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e' # ratchet:actions/create-github-app-token@v2
         with:
@@ -59,7 +59,7 @@ jobs:
         uses: 'actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea'
         with:
           github-token: '${{ steps.generate_token.outputs.token || secrets.GITHUB_TOKEN }}'
-          script: |- 
+          script: |-
             const { data: labels } = await github.rest.issues.listLabelsForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -106,7 +106,7 @@ jobs:
             Your output must be a JSON object with two keys: "labels_to_set" and "explanation".
             "labels_to_set" is a list of strings, where each string is a label to be added to the issue.
             "explanation" is a string that explains why you chose those labels.
-            Do not use any tools.
+            You must not use any tools. Do not call any functions or tools, including run_shell_command.
 
       - name: 'Apply Labels to Issue'
         if: |- 
@@ -118,7 +118,7 @@ jobs:
         uses: 'actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea'
         with:
           github-token: '${{ steps.generate_token.outputs.token || secrets.GITHUB_TOKEN }}'
-          script: |- 
+          script: |-
             // Strip code block markers if present
             const rawLabels = process.env.LABELS_OUTPUT;
             core.info(`Raw labels JSON: ${rawLabels}`);
@@ -161,7 +161,7 @@ jobs:
         uses: 'actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea'
         with:
           github-token: '${{ steps.generate_token.outputs.token || secrets.GITHUB_TOKEN }}'
-          script: |- 
+          script: |-
             github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
